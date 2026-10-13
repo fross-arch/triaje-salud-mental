@@ -1,0 +1,24 @@
+# Secretos
+.env
+
+# Java / Maven
+target/
+*.class
+*.log
+
+# Node / React
+node_modules/
+dist/
+.vite/
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Editores y sistema
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

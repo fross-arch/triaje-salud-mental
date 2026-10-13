@@ -1,0 +1,25 @@
+# Base de datos MySQL 8 para desarrollo local (opcional; puedes usar el instalador MySQL Community).
+# Uso: copia .env.example como .env, complétalo y ejecuta:  docker compose up -d
+services:
+  base_datos:
+    image: mysql:8.0
+    container_name: triaje_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:3306:3306"   # solo accesible desde tu propio equipo
+    volumes:
+      - datos_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  datos_mysql:
