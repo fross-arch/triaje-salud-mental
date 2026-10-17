@@ -1,6 +1,13 @@
 # Lista de verificación del Sprint 0
 
+### Responsables (CESDE - Medellín, Colombia)
+- **Mariana Rico**
+- **Bryan Rafael Mendoza**
+- **Sebastián Gonzales**
+- **Yadir Morales**
+
 Marca cada punto antes de pasar al Sprint 1.
+
 
 ## Repositorio
 - [ ] Carpeta del proyecto creada con `backend/`, `frontend/`, `reportes/` y `docs/`

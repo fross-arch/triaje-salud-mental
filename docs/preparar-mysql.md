@@ -1,6 +1,13 @@
 # Preparar MySQL (parte manual del Sprint 0)
 
+### Responsables (CESDE - Medellín, Colombia)
+- **Mariana Rico**
+- **Bryan Rafael Mendoza**
+- **Sebastián Gonzales**
+- **Yadir Morales**
+
 > **XAMPP trae MariaDB, no MySQL.** Para este proyecto usa Docker o el instalador MySQL Community (8.0.16 o superior).
+
 
 ## Opción A: Docker (recomendada)
 

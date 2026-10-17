@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--
+      Configuracion de observabilidad y logging para cumplimiento estricto de privacidad
+      segun la legislacion colombiana (Ley 1581 de 2012 y Decreto 1377 de 2013).
+      Garantiza cero presencia de Datos Personales Identificables (PII), contrasenas,
+      encabezados de autorizacion y respuestas clinicas en consolas y registros.
+    -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="PATRON_CONSOLA"
+              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <appender name="CONSOLA" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${PATRON_CONSOLA}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Restriccion estricta para evitar volcados accidentales de tokens o cuerpos HTTP -->
+    <logger name="org.springframework.web" level="INFO"/>
+    <logger name="org.springframework.security" level="INFO"/>
+    <logger name="org.springframework.web.filter.CommonsRequestLoggingFilter" level="OFF"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.orm.jdbc.bind" level="WARN"/>
+    <logger name="org.apache.coyote" level="INFO"/>
+    <logger name="org.apache.tomcat" level="INFO"/>
+    <logger name="com.triaje" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLA"/>
+    </root>
+</configuration>

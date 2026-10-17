@@ -2,6 +2,15 @@
 
 Proyecto académico que combina psicología y desarrollo de software. Es una herramienta de **cribado** con los cuestionarios PHQ-9 y GAD-7. **No diagnostica** y **no notifica a ningún profesional**; solo orienta y muestra recursos de ayuda. Está dirigido exclusivamente a **mayores de 18 años**.
 
+## Equipo y Responsables del Proyecto
+
+Proyecto desarrollado en CESDE (Medellín, Colombia):
+- **Mariana Rico**
+- **Bryan Rafael Mendoza**
+- **Sebastián Gonzales**
+- **Yadir Morales**
+
+
 ## Estructura
 
 ```

@@ -2,18 +2,18 @@
 
 **Versión:** 1.0
 **Sistema:** Sistema Web de Cribado Clínico Preliminar y Orientación en Salud Mental
-**Fecha de entrada en vigencia:** [FECHA]
+**Fecha de entrada en vigencia:** 17 de octubre de 2026
 
-> **Nota para quien completa este borrador:** reemplaza los campos entre corchetes `[ ]` y haz revisar el texto por tu docente o alguien con formación jurídica antes de usarlo con personas reales. Es un borrador de orientación basado en la Ley 1581 de 2012 y sus normas reglamentarias, no asesoría legal.
+> **Estado:** Versión histórica 1.0 (revisión del 12 de octubre de 2026). Para la versión vigente con los nuevos lineamientos de citas clínicas y evaluación única, consultar `docs/politica-tratamiento-datos-v2.md`.
 
 ---
 
 ## 1. Identificación del responsable
 
-* **Responsable del tratamiento:** [NOMBRE COMPLETO DEL ESTUDIANTE]
-* **Contexto:** proyecto académico de [PROGRAMA / INSTITUCIÓN]
-* **Domicilio:** [CIUDAD, COLOMBIA]
-* **Correo para consultas y reclamos:** [CORREO]
+* **Responsables del tratamiento:** Mariana Rico, Bryan Rafael Mendoza, Sebastián Gonzales y Yadir Morales
+* **Contexto:** proyecto académico de Técnico en Desarrollo de Software, CESDE
+* **Domicilio:** Medellín, Colombia
+
 
 ## 2. Marco normativo
 
@@ -66,7 +66,7 @@ El sistema está dirigido **exclusivamente a mayores de 18 años**. Cada titular
 
 **Cómo ejercerlos:**
 * Revocación y eliminación de cuenta: directamente desde la sección de perfil del sistema.
-* Consultas, rectificaciones y reclamos: escribiendo a [CORREO]. Se responderá dentro de los plazos legales aplicables, que debes verificar con tu docente.
+* Consultas, rectificaciones y reclamos: escribiendo a ymorales1@cesde.net. Las consultas se responderán en un máximo de 10 días hábiles y los reclamos en un máximo de 15 días hábiles, prorrogables conforme a la Ley 1581 de 2012.
 
 ## 9. Medidas de seguridad
 
@@ -77,6 +77,7 @@ El sistema está dirigido **exclusivamente a mayores de 18 años**. Cada titular
 * Registro de auditoría de eventos relevantes.
 * Los registros técnicos (logs) **no contienen** respuestas, nombres ni correos.
 * Acceso a la base de datos restringido al responsable.
+* Los datos se almacenan en el equipo local del responsable del proyecto.
 
 Ningún sistema es completamente invulnerable; estas medidas reducen, pero no eliminan, los riesgos.
 

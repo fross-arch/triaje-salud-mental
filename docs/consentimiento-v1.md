@@ -3,7 +3,7 @@
 **Versión:** 1.0
 **Sistema:** Sistema Web de Cribado Clínico Preliminar y Orientación en Salud Mental
 
-> **Nota para quien completa este borrador:** reemplaza los campos entre corchetes `[ ]`, verifica los teléfonos de ayuda y haz revisar el texto por tu docente o alguien con formación jurídica y en psicología antes de usarlo con personas reales. Este documento es un borrador de orientación, no asesoría legal.
+> **Estado:** borrador completado el 12 de octubre de 2026, pendiente de revisión por el docente y por un profesional de psicología antes de usarse con personas reales. Los números de las líneas de ayuda deben verificarse en las páginas oficiales antes de cada entrega.
 
 ---
 
@@ -16,14 +16,17 @@ Es una herramienta de **cribado (tamizaje)** que te ayuda a identificar si algun
 * **No es un diagnóstico** ni reemplaza la valoración de un profesional de la salud.
 * **No es un servicio de emergencias ni de atención de crisis.**
 * **No notifica a ningún profesional, institución ni persona** sobre tus respuestas. Nadie será avisado si indicas que estás en riesgo. Si necesitas ayuda inmediata, debes buscarla tú mismo/a (ver sección 8).
-* Es un **proyecto académico** de [NOMBRE DE LA INSTITUCIÓN] y no cuenta con validación clínica propia.
+* Es un **proyecto académico** de CESDE y no cuenta con validación clínica propia.
 
-## 3. Responsable del tratamiento de datos
+## 3. Responsables del tratamiento de datos
 
-* **Responsable:** [NOMBRE COMPLETO DEL ESTUDIANTE]
-* **Contexto:** proyecto académico de [PROGRAMA / INSTITUCIÓN]
-* **Correo de contacto para tus derechos:** [CORREO]
-* **Política de tratamiento de datos:** consulta el documento "Política de Tratamiento de Datos Personales" (versión 1.0).
+* **Responsables:**
+  - Mariana Rico
+  - Bryan Rafael Mendoza
+  - Sebastián Gonzales
+  - Yadir Morales
+* **Contexto:** proyecto académico de Técnico en Desarrollo de Software, CESDE (Medellín, Colombia)
+* **Política de tratamiento de datos:** consulta el documento "Política de Tratamiento de Datos Personales" (versión 2.0).
 
 ## 4. ¿Qué datos se recolectan?
 
@@ -56,32 +59,31 @@ Conforme a la Ley 1581 de 2012 y sus normas reglamentarias, tienes derecho a:
 * **Conocer** qué datos tuyos se tratan.
 * **Actualizar y rectificar** tus datos.
 * **Suprimir** tus datos: puedes eliminar tu cuenta desde tu perfil y se borrarán tu información y tus evaluaciones.
-* **Revocar** esta autorización en cualquier momento desde tu perfil. Al revocar, no podrás realizar nuevas evaluaciones.
+* **Revocar** esta autorización en cualquier momento desde tu perfil. **Regla de bloqueo:** si tienes una evaluación en curso (`EN_CURSO`), deberás finalizarla o cancelarla previamente antes de poder revocar el consentimiento. Al revocar válidamente, no podrás realizar nuevas evaluaciones, se revocarán en cascada las autorizaciones activas de compartición clínica y se cancelarán automáticamente las citas en estado propuesta.
 * **Presentar quejas** ante la Superintendencia de Industria y Comercio (SIC) si consideras que se vulneraron tus derechos.
-
-Para ejercerlos también puedes escribir a [CORREO].
 
 ## 8. Si necesitas ayuda ahora
 
 Si tienes pensamientos de hacerte daño o sientes que estás en peligro, no esperes a terminar esta evaluación. Busca ayuda de inmediato:
 
 * **Emergencias:** 123
-* **Línea de salud mental nacional:** [VERIFICAR: Línea 192, opción 4]
-* **Línea Amiga Saludable (Medellín):** [VERIFICAR NÚMERO VIGENTE]
+* **Línea de salud mental nacional:** 192, opción 4 (gratuita, atiende las 24 horas)
+* **Línea Amiga Saludable (Medellín):** 106 o (604) 444 44 48 (atiende las 24 horas)
 * Acude al servicio de urgencias más cercano o contacta a una persona de confianza.
 
 ## 9. Conservación y seguridad
 
 * Tus datos se conservan mientras mantengas tu cuenta. Al eliminarla, se borran.
 * Las contraseñas se almacenan cifradas y el acceso al sistema está protegido con autenticación.
-* Los datos se almacenan en [UBICACIÓN: servidor local / servicio de alojamiento], con acceso restringido al responsable.
+* Los datos se almacenan en el equipo local de los responsables del proyecto, con acceso restringido al equipo de desarrollo.
 
 ## 10. Declaraciones y autorización
 
 Al marcar las casillas siguientes declaro que:
 
-- [ ] **He leído y entendido** este documento y la Política de Tratamiento de Datos Personales, incluyendo que el sistema no es un diagnóstico y no notifica a ningún profesional.
+- [ ] **He leído y entendido** este documento y la Política de Tratamiento de Datos Personales (versión 2.0), incluyendo que el sistema no es un diagnóstico y no notifica a ningún profesional.
 - [ ] **Autorizo de forma previa, expresa e informada** el tratamiento de mis datos personales, incluidos datos sensibles de salud, para las finalidades descritas.
 - [ ] **Declaro que soy mayor de 18 años.**
 
-Entiendo que mi participación es voluntaria y que puedo revocar esta autorización en cualquier momento.
+Entiendo que mi participación es voluntaria y que puedo revocar esta autorización en cualquier momento (sujeto a no tener evaluaciones en curso).
+

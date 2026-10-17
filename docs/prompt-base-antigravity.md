@@ -1,6 +1,13 @@
 # Prompt base para Antigravity
 
+### Responsables del Proyecto (CESDE - Medellín, Colombia)
+- **Mariana Rico**
+- **Bryan Rafael Mendoza**
+- **Sebastián Gonzales**
+- **Yadir Morales**
+
 Pega este texto **al inicio de cada sesión**, antes del prompt del sprint correspondiente (los prompts por sprint están en `plan-de-desarrollo-v4.md`).
+
 
 ---
 

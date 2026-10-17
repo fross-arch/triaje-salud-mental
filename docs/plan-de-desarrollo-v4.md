@@ -1,10 +1,18 @@
 # Plan Maestro de Desarrollo v4: Sistema de Cribado y Orientación en Salud Mental
 
+### Equipo de Desarrollo y Responsables del Proyecto (CESDE - Medellín, Colombia)
+- **Mariana Rico**
+- **Bryan Rafael Mendoza**
+- **Sebastián Gonzales**
+- **Yadir Morales**
+
 > **Enfoque:** el sistema es una herramienta de **cribado (tamizaje) psicométrico**, no de diagnóstico. El orden de construcción prioriza lo que más riesgo y valor tiene (motor clínico, protocolo de crisis, consentimiento) y deja para el final lo cosmético (avatar, PDF elaborado).
 >
 > **Cambios de la v3 respecto a la v2:** todo el proyecto en español; restricción a mayores de 18 años; consentimiento y política de tratamiento de datos como documentos propios; revocación del consentimiento.
 >
 > **Cambios de la v4 respecto a la v3:** mensaje específico para resultados mínimos (`ReglaResultadoMinimo`); nota informativa en todos los resultados; pantalla de introducción que explica qué son y qué miden los cuestionarios (`docs/informacion-cuestionarios-v1.md`).
+>
+> **Lineamientos de Gestión Clínica e Interacción:** máquina de estados finita para citas de orientación (`PROPUESTA`, `CONFIRMADA`, `RECHAZADA`, `CANCELADA`, `CUMPLIDA`), registro de observaciones clínicas al cumplimiento, política de evaluación única activa y bloqueo de revocación de consentimiento con evaluaciones en curso.
 
 ---
 
@@ -13,6 +21,8 @@
 | Elemento | Decisión |
 |---|---|
 | Nombre | Sistema Web de Cribado Clínico Preliminar y Orientación en Salud Mental |
+| Responsables | **Mariana Rico, Bryan Rafael Mendoza, Sebastián Gonzales, Yadir Morales** |
+| Institución | CESDE - Técnico en Desarrollo de Software (Medellín, Colombia) |
 | Naturaleza | Cribado con PHQ-9 y GAD-7. No diagnostica ni reemplaza la valoración profesional |
 | Población | **Solo mayores de 18 años** (declaración explícita en el consentimiento) |
 | Arquitectura | Backend Spring Boot (hexagonal) + microservicio Python interno para reportes. Comunicación REST síncrona |
@@ -488,3 +498,16 @@ Líneas de extensión que **no forman parte del alcance actual**, pero que la ar
 * Verificar si los resultados forman parte de la historia clínica; de ser así, aplican reglas de conservación y custodia (Resolución 1995 de 1999 y Ley 2015 de 2020) que entran en conflicto con la eliminación total de datos.
 * Garantizar que cada psicólogo vea únicamente a sus propios pacientes.
 * Definir con literatura cualquier umbral de "cambio clínicamente significativo" entre aplicaciones.
+
+---
+
+## 12. Consolidación de Reglas de Negocio Implementadas
+
+Como evolución técnica y clínica del sistema, se consolidaron los siguientes lineamientos estrictos de dominio:
+
+1. **Máquina de Estados de Citas:** Las citas entre profesional y paciente se gestionan mediante los estados `PROPUESTA`, `CONFIRMADA`, `RECHAZADA`, `CANCELADA` y `CUMPLIDA`.
+2. **Registro de Observaciones Clínicas:** Al marcar una cita como `CUMPLIDA`, el clínico tratante debe consignar de forma obligatoria las observaciones clínicas de la sesión, registrándose la estampa temporal de cumplimiento y evento de auditoría `CITA_CUMPLIDA`.
+3. **Carácter Terminal e Imposibilidad de Reapertura:** Los estados `CANCELADA`, `RECHAZADA` y `CUMPLIDA` son terminales definitivos. Una cita cancelada nunca puede reactivarse ni reabrirse.
+4. **Política de Evaluación Única Activa:** Un paciente no puede iniciar ni enviar nuevas evaluaciones de cribado si mantiene una cita en estado `PROPUESTA` o `CONFIRMADA`, o una evaluación compartida en espera de atención clínica.
+5. **Bloqueo de Revocación de Consentimiento:** Se bloquea la revocación del consentimiento (HTTP 409) si el usuario posee evaluaciones en estado `EN_CURSO`. Al revocar válidamente, se revocan las autorizaciones activas y se cancelan automáticamente las citas `PROPUESTA`.
+

@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: triaje-backend
+  config:
+    # Permite reutilizar el archivo .env de la raíz del proyecto (formato CLAVE=valor).
+    # Las variables de entorno del sistema tienen prioridad sobre este archivo.
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:.env[.properties]
+  datasource:
+    url: jdbc:mysql://${BD_HOST:localhost}:${BD_PUERTO:3307}/${MYSQL_DATABASE:triaje_salud_mental_db}?serverTimezone=UTC&characterEncoding=UTF-8
+    username: ${MYSQL_USER:triaje_app}
+    password: ${MYSQL_PASSWORD:Targaryen2026++}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.web.filter.CommonsRequestLoggingFilter: OFF
+    # Nunca subir a DEBUG/TRACE en entornos con datos reales: podrían aparecer parámetros SQL.
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.apache.coyote: INFO
+    org.apache.tomcat: INFO
+
+seguridad:
+  admin:
+    correo: ${ADMIN_CORREO:admin@triaje.local}
+    contrasena-inicial: ${ADMIN_CONTRASENA_INICIAL:AdminSeguro2026*}
+
+triaje:
+  seguridad:
+    jwt:
+      secreto: ${x6xb5hh;A73@slQu$iul24CX#;Hyf<A4}
+      emisor: triaje-salud-mental
+      duracion-token-acceso: 15m
+    renovacion:
+      duracion: 7d
+      nombre-cookie: token_renovacion
+      ruta-cookie: /api/autenticacion
+      # En producción (HTTPS) debe ser true.
+      cookie-segura: ${COOKIE_SEGURA:false}
+    cors:
+      origenes-permitidos:
+        - http://localhost:5173
+    limite-intentos:
+      capacidad-por-ip: 20
+      capacidad-por-correo-e-ip: 5
+      periodo: 1m
+    bcrypt-fuerza: 12
+  reportes:
+    url: ${TRIAJE_REPORTES_URL:http://127.0.0.1:8000}
+    clave-interna: ${TRIAJE_REPORTES_CLAVE_INTERNA:ClaveInternaSeguraTriaje2026ProyectoSaludMental}
+    tiempo-espera-conexion-segundos: 5
+    tiempo-espera-lectura-segundos: 15
+  cron-evaluaciones-abandonadas: "0 0 * * * *"
+  cron-citas-expiradas: "0 */10 * * * *"
+  recursos-ayuda:
+    - nombre: "Linea 123"
+      telefono: "123"
+      horario: "24/7"
+      descripcion: "Emergencias medicas y situaciones de crisis vital inmediata."
+      ambito: "Nacional (Colombia)"
+    - nombre: "Linea 192 opcion 4"
+      telefono: "192 opcion 4"
+      horario: "24/7"
+      descripcion: "Orientacion y atencion en salud mental del Ministerio de Salud."
+      ambito: "Nacional (Colombia)"
+    - nombre: "Linea Amiga Saludable Medellin"
+      telefono: "106 / (604) 444 44 48"
+      horario: "24/7"
+      descripcion: "Acompanamiento psicosocial y prevencion del suicidio de la Alcaldia de Medellin."
+      ambito: "Medellin y area metropolitana"

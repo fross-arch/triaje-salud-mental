@@ -1,8 +1,10 @@
 # Sobre los cuestionarios que vas a responder
 
-**Versión:** 1.0
+**Versión:** 1.0  
+**Equipo Responsable (CESDE):** Mariana Rico, Bryan Rafael Mendoza, Sebastián Gonzales, Yadir Morales  
 
-> **Nota para quien completa este borrador:** haz revisar este texto por tu docente o un profesional de psicología antes de usarlo con personas reales, y cita la versión en español validada de cada instrumento en la sección "Fuentes".
+> **Estado:** Documento base completado en octubre de 2026, pendiente de revisión por el docente y por un profesional de psicología antes de usarse con personas reales.
+
 
 ---
 
@@ -86,4 +88,10 @@ Si la respondes con cualquier opción distinta de "Ningún día", verás de inme
 
 * PHQ-9: Kroenke K, Spitzer RL, Williams JBW. *J Gen Intern Med*, 2001.
 * GAD-7: Spitzer RL, Kroenke K, Williams JBW, Löwe B. *Arch Intern Med*, 2006.
-* Versión en español utilizada: [COMPLETAR con la referencia de validación en español].
+
+**Referencias de validación en español**
+
+* PHQ-9 en Colombia: Cassiani-Miranda CA, Cuadros-Cruz AK, Torres-Pinzón H, et al. Validez del Cuestionario de salud del paciente-9 (PHQ-9) para cribado de depresión en adultos usuarios de Atención Primaria en Bucaramanga, Colombia. *Rev Colomb Psiquiatr*. 2021;50(1):11-21.
+* GAD-7, adaptación cultural al español: García-Campayo J, et al. Cultural adaptation into Spanish of the Generalized Anxiety Disorder-7 (GAD-7) scale as a screening tool. *Health Qual Life Outcomes*. 2010;8:8. doi:10.1186/1477-7525-8-8.
+* GAD-7 en Colombia: Escala de ansiedad generalizada GAD-7 en profesionales médicos colombianos durante la pandemia de COVID-19: validez de constructo y confiabilidad. *Rev Colomb Psiquiatr*. 2023;52(3):245-250.
+* GAD-7 en estudiantes universitarios de seis países latinoamericanos, incluida Colombia: Moreno-Montero E, Moreta-Herrera R, Rodas JA, et al. *J Affect Disord*. 2025;380:598-606.
