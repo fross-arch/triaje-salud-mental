@@ -1,12 +1,3 @@
-"""Modulo de generacion de reportes PDF clinicos en memoria con ReportLab.
-
-Reglas del proyecto:
-- Todo en memoria (BytesIO), sin archivos temporales en disco.
-- Todos los identificadores en espanol, sin tildes ni enies.
-- Sistema de cribado orientativo, jamas diagnostico (sin nosologias DSM-5/CIE-11).
-- Maquetacion sobria; el numero de paginas depende del contenido explicativo (3 o mas).
-- Prohibido registrar datos de pacientes o respuestas en logs.
-"""
 
 import io
 from typing import Any, Dict, List

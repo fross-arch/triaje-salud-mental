@@ -1,16 +1,4 @@
-"""Modulo con la explicacion en lenguaje sencillo de cada pregunta del PHQ-9 y del GAD-7.
 
-Reglas del proyecto:
-- Cribado orientativo, jamas diagnostico: las explicaciones describen QUE EXPLORA cada pregunta,
-  sin etiquetas clinicas ni inferencias sobre la persona.
-- Todos los identificadores en espanol, sin tildes ni enies.
-- Sin datos personales ni escritura en disco: solo constantes y funciones puras.
-
-IMPORTANTE (revision documental, item 12 del plan): los textos de "explicacion" fueron redactados
-para este informe a partir del contenido de cada pregunta; deben ser revisados por un profesional
-o docente de psicologia antes de la sustentacion. Las referencias bibliograficas respaldan los
-instrumentos, su puntuacion y su validacion; no son citas textuales de las explicaciones.
-"""
 
 import re
 import unicodedata

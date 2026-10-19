@@ -1,9 +1,4 @@
-"""Modulo con plantillas y textos de orientacion para reportes de cribado.
 
-Reglas del proyecto:
-- Sistema de cribado orientativo, jamas diagnostico (sin clasificaciones DSM-5 ni CIE-11).
-- Todos los identificadores en espanol, sin tildes ni enies.
-"""
 
 AVISO_LEGAL_CRIBADO = (
     "Este informe es un cribado orientativo y no constituye un diagnostico clinico."

@@ -1,12 +1,3 @@
-"""Servicio principal FastAPI para generacion de reportes PDF de cribado en salud mental.
-
-Reglas del proyecto:
-- Todo el codigo, identificadores, funciones, comentarios en espanol, sin tildes ni enies.
-- Sistema de cribado orientativo, jamas diagnostico (sin clasificaciones DSM-5/CIE-11).
-- Prohibido registrar en logs los nombres, correos o respuestas recibidas.
-- Seguridad por cabecera HTTP 'X-Clave-Interna' comparada con la variable de entorno CLAVE_INTERNA.
-- No persiste datos en base de datos ni guarda archivos temporales en disco.
-"""
 
 import logging
 import os

@@ -1,11 +1,3 @@
-"""Modulo para la generacion en memoria de graficos comparativos de puntajes psicometricos.
-
-Reglas del proyecto:
-- Todo en memoria (BytesIO), sin persistencia ni archivos temporales en disco.
-- Todos los identificadores en espanol, sin tildes ni enies.
-- Enfoque sobrio y orientativo, sin categorias diagnosticas.
-- El color de la barra de resultado corresponde a la franja de severidad en la que cae el puntaje.
-"""
 
 import io
 from typing import List, Tuple
