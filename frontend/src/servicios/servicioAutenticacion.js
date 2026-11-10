@@ -45,10 +45,7 @@ export const servicioAutenticacion = {
   },
 
   async eliminarCuenta() {
-    try {
-      await clienteHttp.eliminar('/api/usuarios/yo');
-    } finally {
-      establecerToken(null);
-    }
+    await clienteHttp.eliminar('/api/usuarios/yo');
+    establecerToken(null);
   }
 };

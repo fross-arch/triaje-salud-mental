@@ -133,4 +133,94 @@ describe('PantallaPerfil', () => {
     // No debe haber llamado a revocar en el backend
     expect(servicioConsentimiento.revocar).not.toHaveBeenCalled();
   });
+
+  it('muestra mensaje de error con enlace a /mis-citas al fallar la revocación por cita activa, manteniendo el consentimiento vigente', async () => {
+    vi.spyOn(useAutenticacionModulo, 'useAutenticacion').mockReturnValue({
+      usuario: {
+        id: 11,
+        nombreCompleto: 'Paciente Con Cita Activa',
+        correo: 'paciente_cita@ejemplo.com',
+        rol: 'PACIENTE'
+      },
+      eliminarCuenta: vi.fn(),
+      estaAutenticado: true
+    });
+
+    servicioTriaje.listarEvaluaciones.mockResolvedValueOnce([]);
+    servicioConsentimiento.consultarVigente.mockResolvedValueOnce({ vigente: true });
+    servicioConsentimiento.revocar.mockRejectedValueOnce(
+      new Error("No puedes revocar el consentimiento mientras tengas una cita activa programada o propuesta. Debes completarla o cancelarla desde 'Mis Citas'.")
+    );
+
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <PantallaPerfil />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Consentimiento vigente')).toBeInTheDocument();
+
+    const usuario = userEvent.setup();
+    const botonRevocar = screen.getByRole('button', { name: /Revocar consentimiento/i });
+    await usuario.click(botonRevocar);
+
+    // Confirmar en el modal
+    const botonConfirmar = screen.getByRole('button', { name: /^Revocar autorización$/i });
+    await usuario.click(botonConfirmar);
+
+    // El error debe desplegarse
+    expect(await screen.findByText(/No puedes revocar el consentimiento mientras tengas una cita activa/i)).toBeInTheDocument();
+
+    // Debe mostrarse el enlace a Mis Citas
+    const enlaceMisCitas = screen.getByRole('link', { name: /Ir a Mis Citas/i });
+    expect(enlaceMisCitas).toBeInTheDocument();
+    expect(enlaceMisCitas).toHaveAttribute('href', '/mis-citas');
+
+    // El consentimiento debe permanecer vigente
+    expect(screen.getByText('Consentimiento vigente')).toBeInTheDocument();
+  });
+
+  it('muestra mensaje de error con enlace a /mis-citas al fallar la eliminación de cuenta por cita activa', async () => {
+    const mockEliminarCuenta = vi.fn().mockRejectedValueOnce(
+      new Error("No puedes eliminar tu cuenta mientras tengas una cita activa programada o propuesta. Debes completarla o cancelarla desde 'Mis Citas'.")
+    );
+
+    vi.spyOn(useAutenticacionModulo, 'useAutenticacion').mockReturnValue({
+      usuario: {
+        id: 12,
+        nombreCompleto: 'Paciente Con Cita Bloqueante',
+        correo: 'paciente_bloqueado@ejemplo.com',
+        rol: 'PACIENTE'
+      },
+      eliminarCuenta: mockEliminarCuenta,
+      estaAutenticado: true
+    });
+
+    servicioTriaje.listarEvaluaciones.mockResolvedValueOnce([]);
+    servicioConsentimiento.consultarVigente.mockResolvedValueOnce({ vigente: true });
+
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <PantallaPerfil />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Paciente Con Cita Bloqueante')).toBeInTheDocument();
+
+    const usuario = userEvent.setup();
+    const botonEliminar = screen.getByRole('button', { name: /Eliminar mi cuenta y datos/i });
+    await usuario.click(botonEliminar);
+
+    // Confirmar en el modal
+    const botonConfirmar = screen.getByRole('button', { name: /^Eliminar definitivamente$/i });
+    await usuario.click(botonConfirmar);
+
+    expect(mockEliminarCuenta).toHaveBeenCalledTimes(1);
+
+    // Se despliega el error y el enlace a Mis Citas
+    expect(await screen.findByText(/No puedes eliminar tu cuenta mientras tengas una cita activa/i)).toBeInTheDocument();
+    const enlaceMisCitas = screen.getByRole('link', { name: /Ir a Mis Citas/i });
+    expect(enlaceMisCitas).toBeInTheDocument();
+    expect(enlaceMisCitas).toHaveAttribute('href', '/mis-citas');
+  });
 });

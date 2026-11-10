@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ENUNCIADO_TEMPORAL,
@@ -25,6 +25,51 @@ export function AsistenteTriaje() {
   const [modalInfoAbierto, setModalInfoAbierto] = useState(false);
   const [modalSalirAbierto, setModalSalirAbierto] = useState(false);
   const [respuestasRegistradas, setRespuestasRegistradas] = useState({});
+
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarRespuestasPrevias() {
+      if (!evaluacionId) return;
+      try {
+        const detalle = await servicioTriaje.obtenerDetalle(evaluacionId);
+        if (cancelado || !detalle) return;
+
+        if (detalle.evaluacion?.riesgoCrisis) {
+          setRiesgoCrisisActivo(true);
+        }
+
+        if (Array.isArray(detalle.respuestas) && detalle.respuestas.length > 0) {
+          const mapa = {};
+          detalle.respuestas.forEach((r) => {
+            const pEncontrada = LISTA_PREGUNTAS.find(
+              (p) => p.instrumento === r.instrumento && p.indicePregunta === r.indicePregunta
+            );
+            if (pEncontrada) {
+              mapa[pEncontrada.numeroGlobal] = r.valorPuntaje;
+            }
+          });
+          setRespuestasRegistradas(mapa);
+
+          const primerSinResponder = LISTA_PREGUNTAS.findIndex(
+            (p) => mapa[p.numeroGlobal] === undefined
+          );
+
+          if (primerSinResponder !== -1) {
+            setIndiceActual(primerSinResponder);
+          } else {
+            setIndiceActual(TOTAL_PREGUNTAS - 1);
+          }
+        }
+      } catch (err) {
+        console.error('Error al cargar respuestas previas:', err);
+      }
+    }
+
+    cargarRespuestasPrevias();
+    return () => {
+      cancelado = true;
+    };
+  }, [evaluacionId]);
 
   const preguntaActual = LISTA_PREGUNTAS[indiceActual];
   const numeroPregunta = indiceActual + 1;

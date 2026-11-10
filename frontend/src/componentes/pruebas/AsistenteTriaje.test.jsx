@@ -10,7 +10,11 @@ import { servicioRecursosAyuda } from '../../servicios/servicioRecursosAyuda.js'
 vi.mock('../../servicios/servicioTriaje.js', () => ({
   servicioTriaje: {
     registrarRespuesta: vi.fn(),
-    finalizarEvaluacion: vi.fn()
+    finalizarEvaluacion: vi.fn(),
+    obtenerDetalle: vi.fn().mockResolvedValue({
+      evaluacion: { id: 'eval-123', estado: 'EN_CURSO', riesgoCrisis: false },
+      respuestas: []
+    })
   }
 }));
 
@@ -154,5 +158,21 @@ describe('AsistenteTriaje', () => {
     const svgAvatarCrisis = screen.getByTestId('svg-presentador-avatar');
     expect(svgAvatarCrisis).toHaveAttribute('data-estado-visual', 'CRISIS');
     expect(svgAvatarCrisis).toHaveAttribute('data-animaciones-activas', 'false');
+  });
+
+  it('reanuda una evaluación en curso cargando sus respuestas y posicionándose en la primera pregunta pendiente', async () => {
+    servicioTriaje.obtenerDetalle.mockResolvedValueOnce({
+      evaluacion: { id: 'eval-123', estado: 'EN_CURSO', riesgoCrisis: false },
+      respuestas: [
+        { instrumento: 'PHQ9', indicePregunta: 1, valorPuntaje: 2 },
+        { instrumento: 'PHQ9', indicePregunta: 2, valorPuntaje: 1 }
+      ]
+    });
+
+    renderizarAsistente();
+
+    // Debe posicionarse en la pregunta 3 ("Problemas para dormir o para mantenerse dormido/a, o dormir demasiado")
+    expect(await screen.findByText(/Pregunta 3 de 16/i)).toBeInTheDocument();
+    expect(screen.getByText(/Problemas para dormir/i)).toBeInTheDocument();
   });
 });

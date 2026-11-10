@@ -21,7 +21,7 @@ import { PantallaPoliticaPrivacidad } from './pantallas/PantallaPoliticaPrivacid
 import { PaginaNoAutorizado } from './paginas/PaginaNoAutorizado.jsx';
 import { AccesoDenegado } from './pantallas/AccesoDenegado.jsx';
 
-function RedireccionInicio() {
+export function RedireccionInicio() {
   const { estaAutenticado, usuario, cargando } = useAutenticacion();
 
   if (cargando) {
@@ -97,8 +97,8 @@ export function App() {
                 <Route path="/perfil" element={<PantallaPerfil />} />
               </Route>
 
-              {/* Redireccion por defecto */}
-              <Route path="*" element={<Navigate to="/iniciar-sesion" replace />} />
+              {/* Redireccion por defecto segun autenticacion y rol */}
+              <Route path="*" element={<RedireccionInicio />} />
             </Routes>
           </div>
           <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 bg-white">

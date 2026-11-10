@@ -127,4 +127,76 @@ describe('PantallaInicioSesion - Prevención de llamadas 403 por rol', () => {
     // Verificación clave: SÍ se ejecuta la consulta para el rol PACIENTE
     expect(servicioConsentimiento.consultarVigente).toHaveBeenCalledTimes(1);
   });
+
+  it('redirige a /consentimiento cuando el rol es PACIENTE y vigente es false explícito', async () => {
+    const mockIniciarSesion = vi.fn().mockResolvedValue({
+      exito: true,
+      usuario: { id: 4, rol: 'PACIENTE', nombreCompleto: 'Paciente Sin Consentimiento' }
+    });
+
+    vi.spyOn(HookAutenticacion, 'useAutenticacion').mockReturnValue({
+      iniciarSesion: mockIniciarSesion
+    });
+
+    servicioConsentimiento.consultarVigente.mockResolvedValueOnce({ vigente: false });
+
+    const usuario = userEvent.setup();
+
+    render(
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        initialEntries={['/iniciar-sesion']}
+      >
+        <Routes>
+          <Route path="/iniciar-sesion" element={<PantallaInicioSesion />} />
+          <Route path="/consentimiento" element={<div>Consentimiento Destino</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await usuario.type(screen.getByLabelText(/Correo electrónico/i), 'sin.consentimiento@ejemplo.com');
+    await usuario.type(screen.getByLabelText(/Contraseña/i), 'ClaveSegura123!');
+    await usuario.click(screen.getByRole('button', { name: /^ingresar$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Consentimiento Destino')).toBeInTheDocument();
+    });
+
+    expect(servicioConsentimiento.consultarVigente).toHaveBeenCalledTimes(1);
+  });
+
+  it('permanece en la pantalla con mensaje de error y NO redirige a /consentimiento ante fallo de red o servidor al consultar consentimiento', async () => {
+    const mockIniciarSesion = vi.fn().mockResolvedValue({
+      exito: true,
+      usuario: { id: 5, rol: 'PACIENTE', nombreCompleto: 'Paciente Con Error' }
+    });
+
+    vi.spyOn(HookAutenticacion, 'useAutenticacion').mockReturnValue({
+      iniciarSesion: mockIniciarSesion
+    });
+
+    servicioConsentimiento.consultarVigente.mockRejectedValueOnce(new Error('Fallo de conexión con el servidor.'));
+
+    const usuario = userEvent.setup();
+
+    render(
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        initialEntries={['/iniciar-sesion']}
+      >
+        <Routes>
+          <Route path="/iniciar-sesion" element={<PantallaInicioSesion />} />
+          <Route path="/consentimiento" element={<div>Consentimiento Inesperado</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await usuario.type(screen.getByLabelText(/Correo electrónico/i), 'error.red@ejemplo.com');
+    await usuario.type(screen.getByLabelText(/Contraseña/i), 'ClaveSegura123!');
+    await usuario.click(screen.getByRole('button', { name: /^ingresar$/i }));
+
+    // Permanece en la pantalla y muestra el mensaje
+    expect(await screen.findByText('Fallo de conexión con el servidor.')).toBeInTheDocument();
+    expect(screen.queryByText('Consentimiento Inesperado')).not.toBeInTheDocument();
+  });
 });

@@ -41,13 +41,18 @@ export function PantallaInicioSesion() {
         // Verificar si ya cuenta con consentimiento vigente únicamente para pacientes
         try {
           const respuestaConsentimiento = await servicioConsentimiento.consultarVigente();
-          if (respuestaConsentimiento && respuestaConsentimiento.vigente) {
+          if (respuestaConsentimiento && respuestaConsentimiento.vigente === true) {
             navegar('/introduccion');
-          } else {
+          } else if (respuestaConsentimiento && respuestaConsentimiento.vigente === false) {
             navegar('/consentimiento');
+          } else {
+            setError('No fue posible determinar el estado de tu consentimiento. Por favor, intenta de nuevo.');
           }
-        } catch {
-          navegar('/consentimiento');
+        } catch (errConsentimiento) {
+          setError(
+            errConsentimiento.message ||
+            'Error al verificar el estado del consentimiento informado. Por favor, intenta nuevamente.'
+          );
         }
         return;
       }

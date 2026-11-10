@@ -12,16 +12,27 @@ import {
   Users,
   Edit2,
   Trash2,
-  Briefcase
+  Briefcase,
+  BarChart3,
+  Calendar,
+  Activity,
+  AlertTriangle,
+  Info,
+  Download,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
+
 import { servicioAdministracion } from '../servicios/servicioAdministracion.js';
+import { servicioTablero } from '../servicios/servicioTablero.js';
 import { ModalConfirmacion } from '../componentes/comunes/ModalConfirmacion.jsx';
 import { ModalEditarClinico, ESPECIALIDADES_PREDEFINIDAS } from '../componentes/administracion/ModalEditarClinico.jsx';
 import { ModalEditarPaciente } from '../componentes/administracion/ModalEditarPaciente.jsx';
+import { ImagenAmpliable } from '../componentes/comunes/ImagenAmpliable.jsx';
 import { SeccionPerfil } from '../componentes/perfil/SeccionPerfil.jsx';
 
 export function PanelAdministracion() {
-  const [pestanaActiva, setPestanaActiva] = useState('clinicos'); // 'clinicos' | 'pacientes'
+  const [pestanaActiva, setPestanaActiva] = useState('clinicos'); // 'clinicos' | 'pacientes' | 'tablero' | 'perfil'
 
   // Estado clinicos
   const [clinicos, setClinicos] = useState([]);
@@ -49,11 +60,22 @@ export function PanelAdministracion() {
 
   // Modal eliminar clinico
   const [clinicoAEliminar, setClinicoAEliminar] = useState(null);
+  const [clinicoSugeridoDesactivar, setClinicoSugeridoDesactivar] = useState(null);
 
   // Estado pacientes
   const [pacientes, setPacientes] = useState([]);
   const [cargandoPacientes, setCargandoPacientes] = useState(false);
   const [pacientesCargados, setPacientesCargados] = useState(false);
+
+  // Estado tablero estadístico
+  const [diasTablero, setDiasTablero] = useState(30); // 7 | 30 | 90 | 0 (Todo)
+  const [datosTablero, setDatosTablero] = useState(null);
+  const [cargandoTablero, setCargandoTablero] = useState(false);
+  const [tableroCargado, setTableroCargado] = useState(false);
+  const [errorTablero, setErrorTablero] = useState('');
+  const [descargandoCsv, setDescargandoCsv] = useState(false);
+  const [descargandoPdf, setDescargandoPdf] = useState(false);
+  const [errorDescarga, setErrorDescarga] = useState('');
 
   const [mensajeEstado, setMensajeEstado] = useState('');
   const [error, setError] = useState('');
@@ -85,15 +107,98 @@ export function PanelAdministracion() {
     }
   };
 
+  const cargarTablero = async (dias = diasTablero) => {
+    setCargandoTablero(true);
+    setErrorTablero('');
+    try {
+      const datos = await servicioTablero.obtenerTablero(dias);
+      setDatosTablero(datos);
+      setTableroCargado(true);
+    } catch (err) {
+      if (err.status === 503 || (err.message && err.message.toLowerCase().includes('reportes no está disponible'))) {
+        setErrorTablero('El servicio de generación de reportes y estadísticas no está disponible en este momento. Por favor, intente más tarde.');
+      } else {
+        setErrorTablero(err.message || 'No fue posible cargar el tablero estadístico.');
+      }
+    } finally {
+      setCargandoTablero(false);
+    }
+  };
+
+  const manejarCambiarPeriodo = (nuevoDias) => {
+    setDiasTablero(nuevoDias);
+    cargarTablero(nuevoDias);
+  };
+
+  const manejarDescargarArchivo = async (formato) => {
+    setErrorDescarga('');
+    if (formato === 'csv') {
+      setDescargandoCsv(true);
+    } else {
+      setDescargandoPdf(true);
+    }
+    try {
+      const blob = await servicioTablero.exportarTablero(diasTablero, formato);
+      const url = window.URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.style.display = 'none';
+      enlace.href = url;
+      const fechaHoy = new Date().toISOString().split('T')[0];
+      const prefijo = datosTablero?.es_demostracion ? 'DEMO_' : '';
+      enlace.download = `${prefijo}tablero_${fechaHoy}_${diasTablero}d.${formato}`;
+      document.body.appendChild(enlace);
+      enlace.click();
+      setTimeout(() => {
+        if (document.body.contains(enlace)) {
+          document.body.removeChild(enlace);
+        }
+        window.URL.revokeObjectURL(url);
+      }, 200);
+    } catch (err) {
+      setErrorDescarga(err.message || `No fue posible descargar el archivo ${formato.toUpperCase()}.`);
+    } finally {
+      if (formato === 'csv') {
+        setDescargandoCsv(false);
+      } else {
+        setDescargandoPdf(false);
+      }
+    }
+  };
+
+  const descargarGraficoPng = (base64Str, nombreGrafico) => {
+    if (!base64Str) return;
+    try {
+      const enlace = document.createElement('a');
+      enlace.href = `data:image/png;base64,${base64Str}`;
+      enlace.download = `${nombreGrafico}.png`;
+      document.body.appendChild(enlace);
+      enlace.click();
+      setTimeout(() => {
+        if (document.body.contains(enlace)) {
+          document.body.removeChild(enlace);
+        }
+      }, 200);
+    } catch {
+      // Ignorar en entorno de test sin DOM completo
+    }
+  };
+
   useEffect(() => {
     cargarClinicos();
   }, []);
+
 
   useEffect(() => {
     if (pestanaActiva === 'pacientes' && !pacientesCargados) {
       cargarPacientes();
     }
   }, [pestanaActiva, pacientesCargados]);
+
+  useEffect(() => {
+    if (pestanaActiva === 'tablero' && !tableroCargado) {
+      cargarTablero(diasTablero);
+    }
+  }, [pestanaActiva, tableroCargado, diasTablero]);
 
   const resolverEspecialidadEfectiva = (sel, otra) => {
     if (sel === 'OTRA') {
@@ -255,17 +360,23 @@ export function PanelAdministracion() {
 
   const manejarConfirmarEliminar = async () => {
     if (!clinicoAEliminar) return;
-    const id = clinicoAEliminar.id;
+    const clinico = clinicoAEliminar;
+    const id = clinico.id;
     setAccionEnCurso(id);
     setError('');
     setMensajeEstado('');
     try {
       await servicioAdministracion.eliminarClinico(id);
       setClinicos((prev) => prev.filter((c) => c.id !== id));
-      setMensajeEstado(`Profesional ${clinicoAEliminar.nombreCompleto} eliminado exitosamente.`);
+      setMensajeEstado(`Profesional ${clinico.nombreCompleto} eliminado exitosamente.`);
       setClinicoAEliminar(null);
+      setClinicoSugeridoDesactivar(null);
     } catch (err) {
       setError(err.message || 'Error al eliminar el profesional clínico.');
+      if (err.estado === 409 || err.status === 409 || (err.message && err.message.toLowerCase().includes('desactivar'))) {
+        setClinicoSugeridoDesactivar(clinico);
+      }
+      setClinicoAEliminar(null);
     } finally {
       setAccionEnCurso(null);
     }
@@ -319,6 +430,19 @@ export function PanelAdministracion() {
             <span>Actualizar</span>
           </button>
         )}
+
+        {pestanaActiva === 'tablero' && (
+          <button
+            type="button"
+            onClick={() => cargarTablero(diasTablero)}
+            disabled={cargandoTablero}
+            className="px-3 py-2 border border-slate-300 hover:bg-slate-50 disabled:opacity-50 rounded-xl text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition-colors shadow-xs"
+            aria-label="Actualizar estadísticas del tablero"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${cargandoTablero ? 'animate-spin text-indigo-600' : ''}`} aria-hidden="true" />
+            <span>Actualizar</span>
+          </button>
+        )}
       </div>
 
       {/* Pestañas de navegación administrativa */}
@@ -351,6 +475,19 @@ export function PanelAdministracion() {
 
         <button
           type="button"
+          onClick={() => setPestanaActiva('tablero')}
+          className={`pb-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 ${
+            pestanaActiva === 'tablero'
+              ? 'border-indigo-600 text-indigo-700'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" aria-hidden="true" />
+          <span>Tablero</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setPestanaActiva('perfil')}
           className={`pb-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 ${
             pestanaActiva === 'perfil'
@@ -371,9 +508,24 @@ export function PanelAdministracion() {
       )}
 
       {error && (
-        <div role="alert" className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" aria-hidden="true" />
-          <span>{error}</span>
+        <div role="alert" className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+          {clinicoSugeridoDesactivar && (
+            <button
+              type="button"
+              onClick={async () => {
+                const idADesactivar = clinicoSugeridoDesactivar.id;
+                setClinicoSugeridoDesactivar(null);
+                await manejarDesactivar(idADesactivar);
+              }}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition-colors shrink-0 shadow-sm"
+            >
+              Desactivar profesional
+            </button>
+          )}
         </div>
       )}
 
@@ -678,6 +830,536 @@ export function PanelAdministracion() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ================= PESTAÑA: TABLERO ESTADÍSTICO ================= */}
+      {pestanaActiva === 'tablero' && (
+        <section className="space-y-6">
+          {/* Barra de controles: Selector de periodo y Descargas */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-indigo-600" aria-hidden="true" />
+              <div>
+                <span className="text-xs font-bold text-slate-800">Periodo de análisis:</span>
+                <p className="text-[11px] text-slate-500">Filtrar evaluaciones completadas y actividad por antigüedad</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                {[
+                  { etiqueta: '7 días', valor: 7 },
+                  { etiqueta: '30 días', valor: 30 },
+                  { etiqueta: '90 días', valor: 90 },
+                  { etiqueta: 'Todo el historial', valor: 0 }
+                ].map((opcion) => (
+                  <button
+                    key={opcion.valor}
+                    type="button"
+                    onClick={() => manejarCambiarPeriodo(opcion.valor)}
+                    disabled={cargandoTablero}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      diasTablero === opcion.valor
+                        ? 'bg-white text-indigo-700 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {opcion.etiqueta}
+                  </button>
+                ))}
+              </div>
+
+              {/* Botones de Descarga */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => manejarDescargarArchivo('csv')}
+                  disabled={cargandoTablero || descargandoCsv || descargandoPdf}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Descargar datos agregados en formato CSV (sin datos individuales)"
+                >
+                  {descargandoCsv ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-700" aria-hidden="true" />
+                  ) : (
+                    <Download className="w-4 h-4 text-emerald-700" aria-hidden="true" />
+                  )}
+                  <span>{descargandoCsv ? 'Generando CSV...' : 'Descargar CSV'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => manejarDescargarArchivo('pdf')}
+                  disabled={cargandoTablero || descargandoCsv || descargandoPdf}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Descargar informe consolidado con gráficos en formato PDF"
+                >
+                  {descargandoPdf ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-indigo-700" aria-hidden="true" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-indigo-700" aria-hidden="true" />
+                  )}
+                  <span>{descargandoPdf ? 'Generando PDF...' : 'Informe PDF'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Banner permanente de modo demostración */}
+          {datosTablero?.es_demostracion && (
+            <div
+              role="status"
+              data-testid="banner-demo"
+              className="p-4 bg-amber-400 text-slate-950 font-black rounded-2xl shadow-md border-2 border-amber-600 flex items-center justify-center gap-2 text-xs sm:text-sm tracking-wider uppercase text-center"
+            >
+              <AlertTriangle className="w-5 h-5 text-slate-950 shrink-0" aria-hidden="true" />
+              <span>DATOS DE DEMOSTRACIÓN - no corresponden a personas reales</span>
+            </div>
+          )}
+
+          {/* Aviso de error de descarga */}
+          {errorDescarga && (
+            <div role="alert" className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" aria-hidden="true" />
+                <span>{errorDescarga}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorDescarga('')}
+                className="text-rose-600 hover:text-rose-900 font-bold ml-2 text-xs"
+              >
+                Cerrar
+              </button>
+            </div>
+          )}
+
+          {/* Estado de error de consulta */}
+          {errorTablero && (
+            <div role="alert" className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-2xl flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="font-bold text-rose-900">No fue posible consultar el tablero</p>
+                <p className="mt-1">{errorTablero}</p>
+                <button
+                  type="button"
+                  onClick={() => cargarTablero(diasTablero)}
+                  className="mt-3 px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-900 font-semibold rounded-xl text-xs transition-colors"
+                >
+                  Reintentar consulta
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Estado de carga */}
+          {cargandoTablero && (
+            <div className="py-16 text-center bg-white border border-slate-200 rounded-2xl shadow-xs">
+              <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-3" aria-hidden="true" />
+              <p className="text-sm font-bold text-slate-800">Calculando indicadores y generando gráficos...</p>
+              <p className="text-xs text-slate-500 mt-1">El microservicio estadístico está procesando evaluaciones anónimas.</p>
+            </div>
+          )}
+
+          {/* Estado de datos insuficientes */}
+          {!cargandoTablero && !errorTablero && datosTablero?.datos_insuficientes && (
+            <div className="p-6 bg-amber-50/70 border border-amber-200 rounded-2xl text-center space-y-3">
+              <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto">
+                <Info className="w-6 h-6" aria-hidden="true" />
+              </div>
+              <h2 className="text-base font-bold text-amber-900">Datos insuficientes para agregación psicométrica</h2>
+              <p className="text-xs text-amber-800 max-w-lg mx-auto">
+                {datosTablero.mensaje ||
+                  `Para proteger la confidencialidad, se requiere un mínimo de ${datosTablero.minimo_requerido || 5} evaluaciones completadas en este periodo.`}
+              </p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-100/80 rounded-full text-xs font-semibold text-amber-900">
+                <span>Evaluaciones registradas: {datosTablero.total_evaluaciones}</span>
+                <span>•</span>
+                <span>Mínimo requerido: {datosTablero.minimo_requerido}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Vista exitosa con indicadores y los 4 gráficos psicométricos */}
+          {!cargandoTablero && !errorTablero && !datosTablero?.datos_insuficientes && datosTablero?.indicadores && (
+            <div className="space-y-6">
+              {/* Tarjetas de indicadores psicométricos */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Total Evaluaciones</span>
+                  <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                    {datosTablero.indicadores.total_evaluaciones}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Completadas</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">PHQ-9 (Depresión)</span>
+                  <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                    {datosTablero.indicadores.media_phq9}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    Mediana: {datosTablero.indicadores.mediana_phq9} | ±{datosTablero.indicadores.desviacion_phq9}
+                  </span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">GAD-7 (Ansiedad)</span>
+                  <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                    {datosTablero.indicadores.media_gad7}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    Mediana: {datosTablero.indicadores.mediana_gad7} | ±{datosTablero.indicadores.desviacion_gad7}
+                  </span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Correlación (r)</span>
+                  <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                    {datosTablero.indicadores.correlacion_phq9_gad7 !== null && datosTablero.indicadores.correlacion_phq9_gad7 !== undefined
+                      ? datosTablero.indicadores.correlacion_phq9_gad7
+                      : 'N/D'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">PHQ-9 vs GAD-7</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Riesgo de Crisis</span>
+                  <span className={`text-2xl font-extrabold mt-1 block ${
+                    datosTablero.indicadores.total_crisis === 0 ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
+                    {String(datosTablero.indicadores.total_crisis)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    {datosTablero.indicadores.porcentaje_crisis !== null && datosTablero.indicadores.porcentaje_crisis !== undefined
+                      ? `${datosTablero.indicadores.porcentaje_crisis}% del total`
+                      : 'Protegido por umbral'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Los 4 gráficos psicométricos */}
+              {datosTablero.graficos && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Distribución PHQ-9 (Depresión)</span>
+                      {datosTablero.graficos.severidad_phq9 && (
+                        <button
+                          type="button"
+                          onClick={() => descargarGraficoPng(datosTablero.graficos.severidad_phq9, 'severidad_phq9')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Descargar imagen en formato PNG"
+                          aria-label="Descargar imagen de severidad PHQ-9"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Descargar imagen</span>
+                        </button>
+                      )}
+                    </div>
+                    <ImagenAmpliable
+                      src={`data:image/png;base64,${datosTablero.graficos.severidad_phq9}`}
+                      alt="Gráfico de distribución por severidad de depresión en el instrumento PHQ-9"
+                      tituloModal="Distribución PHQ-9 (Depresión)"
+                    />
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Distribución GAD-7 (Ansiedad)</span>
+                      {datosTablero.graficos.severidad_gad7 && (
+                        <button
+                          type="button"
+                          onClick={() => descargarGraficoPng(datosTablero.graficos.severidad_gad7, 'severidad_gad7')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Descargar imagen en formato PNG"
+                          aria-label="Descargar imagen de severidad GAD-7"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Descargar imagen</span>
+                        </button>
+                      )}
+                    </div>
+                    <ImagenAmpliable
+                      src={`data:image/png;base64,${datosTablero.graficos.severidad_gad7}`}
+                      alt="Gráfico de distribución por severidad de ansiedad en el instrumento GAD-7"
+                      tituloModal="Distribución GAD-7 (Ansiedad)"
+                    />
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Evaluaciones por Semana</span>
+                      {datosTablero.graficos.evaluaciones_semana && (
+                        <button
+                          type="button"
+                          onClick={() => descargarGraficoPng(datosTablero.graficos.evaluaciones_semana, 'evaluaciones_semana')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Descargar imagen en formato PNG"
+                          aria-label="Descargar imagen de evaluaciones por semana"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Descargar imagen</span>
+                        </button>
+                      )}
+                    </div>
+                    <ImagenAmpliable
+                      src={`data:image/png;base64,${datosTablero.graficos.evaluaciones_semana}`}
+                      alt="Gráfico de evolución temporal de evaluaciones completadas por bloques semanales"
+                      tituloModal="Evaluaciones por Semana"
+                    />
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Comorbilidad PHQ-9 vs GAD-7</span>
+                      {datosTablero.graficos.phq9_vs_gad7 && (
+                        <button
+                          type="button"
+                          onClick={() => descargarGraficoPng(datosTablero.graficos.phq9_vs_gad7, 'phq9_vs_gad7')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Descargar imagen en formato PNG"
+                          aria-label="Descargar imagen de comorbilidad PHQ-9 vs GAD-7"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Descargar imagen</span>
+                        </button>
+                      )}
+                    </div>
+                    <ImagenAmpliable
+                      src={`data:image/png;base64,${datosTablero.graficos.phq9_vs_gad7}`}
+                      alt="Matriz de comorbilidad y frecuencias cruzadas entre PHQ-9 y GAD-7"
+                      tituloModal="Comorbilidad PHQ-9 vs GAD-7"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ================= SECCIÓN: ACTIVIDAD DEL SISTEMA ================= */}
+          {!cargandoTablero && !errorTablero && datosTablero?.actividad?.indicadores && (
+            <div className="space-y-6 pt-6 border-t border-slate-200">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-indigo-600" aria-hidden="true" />
+                  Actividad del sistema
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Métricas agregadas de flujo de usuarios, consultas y gestión del personal.
+                </p>
+              </div>
+
+              {/* Tarjetas de actividad - Flujo de atención y usuarios */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Pacientes Registrados</span>
+                  <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                    {String(datosTablero.actividad.indicadores.total_pacientes_registrados)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Cuentas únicas creadas</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Pacientes con Evaluación</span>
+                  <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                    {String(datosTablero.actividad.indicadores.total_pacientes_con_evaluacion)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Al menos una completada</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Pacientes con Cita Confirmada</span>
+                  <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                    {String(datosTablero.actividad.indicadores.total_pacientes_con_cita_confirmada)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Al menos una confirmada</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Citas Propuestas</span>
+                  <span className="text-2xl font-extrabold text-slate-900 mt-1 block">
+                    {String(datosTablero.actividad.indicadores.citas_propuestas)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Por el profesional clínico</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Citas Confirmadas</span>
+                  <span className="text-2xl font-extrabold text-emerald-700 mt-1 block">
+                    {String(datosTablero.actividad.indicadores.citas_confirmadas)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Por el paciente</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Citas Rechazadas</span>
+                  <span className="text-2xl font-extrabold text-amber-700 mt-1 block">
+                    {String(datosTablero.actividad.indicadores.citas_rechazadas)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Por el paciente</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Citas Cumplidas</span>
+                  <span className="text-2xl font-extrabold text-indigo-700 mt-1 block">
+                    {String(datosTablero.actividad.indicadores.citas_cumplidas)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Atenciones efectuadas</span>
+                </div>
+
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                  <span className="text-[11px] font-semibold text-slate-500 block">Citas Canceladas / Pospuestas</span>
+                  <span className="text-2xl font-extrabold text-slate-800 mt-1 block">
+                    {`${datosTablero.actividad.indicadores.citas_canceladas} / ${datosTablero.actividad.indicadores.citas_pospuestas}`}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">En el periodo</span>
+                </div>
+              </div>
+
+              {/* Subsección: Gestión del personal y derechos de pacientes */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Altas de Clínicos</span>
+                  <span className="text-lg font-bold text-slate-800 mt-0.5 block">
+                    {datosTablero.actividad.indicadores.clinicos_altas}
+                  </span>
+                  <span className="text-[10px] text-slate-400">Personal incorporado</span>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Activaciones Clínicos</span>
+                  <span className="text-lg font-bold text-slate-800 mt-0.5 block">
+                    {datosTablero.actividad.indicadores.clinicos_activados}
+                  </span>
+                  <span className="text-[10px] text-slate-400">Reactivaciones</span>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Desactivaciones</span>
+                  <span className="text-lg font-bold text-slate-800 mt-0.5 block">
+                    {datosTablero.actividad.indicadores.clinicos_desactivados}
+                  </span>
+                  <span className="text-[10px] text-slate-400">Pausas de acceso</span>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Eliminaciones Clínicos</span>
+                  <span className="text-lg font-bold text-slate-800 mt-0.5 block">
+                    {datosTablero.actividad.indicadores.clinicos_eliminados}
+                  </span>
+                  <span className="text-[10px] text-slate-400">Bajas de personal</span>
+                </div>
+              </div>
+
+              {/* Los 4 gráficos de actividad */}
+              {datosTablero.actividad.graficos && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Evolución de Eventos de Pacientes</span>
+                      {datosTablero.actividad.graficos.actividad_semanal_pacientes && (
+                        <button
+                          type="button"
+                          onClick={() => descargarGraficoPng(datosTablero.actividad.graficos.actividad_semanal_pacientes, 'actividad_semanal_pacientes')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Descargar imagen en formato PNG"
+                          aria-label="Descargar imagen de actividad semanal de pacientes"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Descargar imagen</span>
+                        </button>
+                      )}
+                    </div>
+                    <ImagenAmpliable
+                      src={`data:image/png;base64,${datosTablero.actividad.graficos.actividad_semanal_pacientes}`}
+                      alt="Evolución temporal semanal de eventos de pacientes (registros, consentimientos, evaluaciones y citas)"
+                      tituloModal="Actividad Semanal de Pacientes"
+                    />
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Distribución por Estado de Citas</span>
+                      {datosTablero.actividad.graficos.estado_citas && (
+                        <button
+                          type="button"
+                          onClick={() => descargarGraficoPng(datosTablero.actividad.graficos.estado_citas, 'estado_citas')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Descargar imagen en formato PNG"
+                          aria-label="Descargar imagen de estado de citas"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Descargar imagen</span>
+                        </button>
+                      )}
+                    </div>
+                    <ImagenAmpliable
+                      src={`data:image/png;base64,${datosTablero.actividad.graficos.estado_citas}`}
+                      alt="Distribución de citas según su estado actual en el flujo clínico"
+                      tituloModal="Distribución por Estado de Citas"
+                    />
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Gestión de Personal Clínico</span>
+                      {datosTablero.actividad.graficos.gestion_clinicos && (
+                        <button
+                          type="button"
+                          onClick={() => descargarGraficoPng(datosTablero.actividad.graficos.gestion_clinicos, 'gestion_clinicos')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Descargar imagen en formato PNG"
+                          aria-label="Descargar imagen de gestión de clínicos"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Descargar imagen</span>
+                        </button>
+                      )}
+                    </div>
+                    <ImagenAmpliable
+                      src={`data:image/png;base64,${datosTablero.actividad.graficos.gestion_clinicos}`}
+                      alt="Métricas de gestión de cuentas del personal clínico (altas, activaciones, desactivaciones y eliminaciones)"
+                      tituloModal="Gestión de Personal Clínico"
+                    />
+                  </div>
+
+                  <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Pacientes en Flujo de Atención</span>
+                      {datosTablero.actividad.graficos.comparativa_pacientes && (
+                        <button
+                          type="button"
+                          onClick={() => descargarGraficoPng(datosTablero.actividad.graficos.comparativa_pacientes, 'comparativa_pacientes')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          title="Descargar imagen en formato PNG"
+                          aria-label="Descargar imagen de comparativa de pacientes"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Descargar imagen</span>
+                        </button>
+                      )}
+                    </div>
+                    <ImagenAmpliable
+                      src={`data:image/png;base64,${datosTablero.actividad.graficos.comparativa_pacientes}`}
+                      alt="Comparativa de pacientes únicos en cada etapa del flujo de atención"
+                      tituloModal="Pacientes en Flujo de Atención"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pie informativo de privacidad */}
+          {!cargandoTablero && !errorTablero && (datosTablero?.indicadores || datosTablero?.actividad) && (
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" aria-hidden="true" />
+              <span>
+                Protección de confidencialidad clínica activa: estadísticas agregadas con umbral mínimo de grupo N={datosTablero?.minimo_requerido || 5} y supresión de celdas pequeñas para evitar deducción por resta. Las descargas no contienen listas ni datos individuales de personas.
+              </span>
             </div>
           )}
         </section>

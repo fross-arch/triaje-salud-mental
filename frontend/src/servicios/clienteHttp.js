@@ -147,7 +147,7 @@ export async function peticionHttp(ruta, opciones = {}) {
     throw error;
   }
 
-  if (respuesta.status === 204) {
+  if (respuesta.status === 204 || respuesta.headers?.get?.('content-length') === '0') {
     return null;
   }
 
@@ -155,7 +155,27 @@ export async function peticionHttp(ruta, opciones = {}) {
     return await respuesta.blob();
   }
 
-  return await respuesta.json();
+  if (typeof respuesta.text === 'function') {
+    const texto = await respuesta.text();
+    if (!texto || texto.trim().length === 0) {
+      return null;
+    }
+    try {
+      return JSON.parse(texto);
+    } catch {
+      return texto;
+    }
+  }
+
+  if (typeof respuesta.json === 'function') {
+    try {
+      return await respuesta.json();
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 export const clienteHttp = {
@@ -164,5 +184,7 @@ export const clienteHttp = {
   actualizar: (ruta, cuerpo, opciones = {}) => peticionHttp(ruta, { ...opciones, metodo: 'PUT', cuerpo }),
   eliminar: (ruta, opciones = {}) => peticionHttp(ruta, { ...opciones, metodo: 'DELETE' }),
   descargar: (ruta, opciones = {}) => peticionHttp(ruta, { ...opciones, metodo: 'GET', esDescarga: true }),
+  descargarBlob: (ruta, opciones = {}) => peticionHttp(ruta, { ...opciones, metodo: 'GET', esDescarga: true }),
   renovarTokenInterno
 };
+

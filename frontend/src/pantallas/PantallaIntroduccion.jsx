@@ -77,7 +77,7 @@ export function PantallaIntroduccion() {
               <p className="font-semibold">Atención clínica en curso o programada</p>
               <p className="text-xs text-amber-800 mt-1">{bloqueoActivo}</p>
               <Link
-                to="/citas"
+                to="/mis-citas"
                 className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-semibold text-teal-700 hover:text-teal-900 underline"
               >
                 Consultar Mis Citas

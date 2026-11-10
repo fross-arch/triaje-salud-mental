@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAutenticacion } from '../hooks/useAutenticacion.js';
 import { servicioConsentimiento } from '../servicios/servicioConsentimiento.js';
@@ -13,6 +13,24 @@ export function PantallaConsentimiento() {
   const [declaraMayorEdad, setDeclaraMayorEdad] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelado = false;
+    async function verificarConsentimiento() {
+      try {
+        const respuesta = await servicioConsentimiento.consultarVigente();
+        if (!cancelado && respuesta && respuesta.vigente === true) {
+          navegar('/introduccion', { replace: true });
+        }
+      } catch {
+        // En caso de error de red/servidor, permite al paciente ver la pantalla
+      }
+    }
+    verificarConsentimiento();
+    return () => {
+      cancelado = true;
+    };
+  }, [navegar]);
 
   const puedeContinuar = aceptaTratamiento && declaraMayorEdad;
 

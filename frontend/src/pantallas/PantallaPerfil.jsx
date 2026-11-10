@@ -105,6 +105,7 @@ export function PantallaPerfil() {
         setModalRevocarAbierto(false);
         setModalAlertaEvaluacionEnCurso(true);
       } else {
+        setModalRevocarAbierto(false);
         setError(msg || 'Error al revocar el consentimiento.');
       }
     } finally {
@@ -120,6 +121,7 @@ export function PantallaPerfil() {
       setModalEliminarAbierto(false);
       navegar('/iniciar-sesion');
     } catch (err) {
+      setModalEliminarAbierto(false);
       setError(err.message || 'Error al eliminar la cuenta y los datos.');
       setProcesandoAccion(false);
     }
@@ -207,8 +209,16 @@ export function PantallaPerfil() {
         )}
 
         {error && (
-          <div role="alert" className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl">
-            {error}
+          <div role="alert" className="mt-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex flex-col gap-2">
+            <span>{error}</span>
+            {error.toLowerCase().includes('cita') && (
+              <Link
+                to="/mis-citas"
+                className="inline-flex items-center gap-1 font-semibold text-teal-800 hover:text-teal-950 underline self-start"
+              >
+                Ir a Mis Citas
+              </Link>
+            )}
           </div>
         )}
       </div>

@@ -108,13 +108,10 @@ export function ProveedorAutenticacion({ children }) {
   };
 
   const eliminarCuenta = async () => {
-    try {
-      await servicioAutenticacion.eliminarCuenta();
-    } finally {
-      establecerToken(null);
-      setTokenAcceso(null);
-      setUsuario(null);
-    }
+    await servicioAutenticacion.eliminarCuenta();
+    establecerToken(null);
+    setTokenAcceso(null);
+    setUsuario(null);
   };
 
   const actualizarUsuarioEnEstado = (nuevoUsuario) => {

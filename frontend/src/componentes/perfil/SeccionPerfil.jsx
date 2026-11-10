@@ -202,7 +202,9 @@ export function SeccionPerfil({ usuario: usuarioProp, onPerfilActualizado }) {
               </span>
               <input
                 id="perfil-nombre"
+                name="nombreCompleto"
                 type="text"
+                autoComplete="name"
                 required
                 maxLength={120}
                 value={nombreCompleto}
@@ -223,7 +225,9 @@ export function SeccionPerfil({ usuario: usuarioProp, onPerfilActualizado }) {
               </span>
               <input
                 id="perfil-correo"
+                name="correo"
                 type="email"
+                autoComplete="username"
                 required
                 maxLength={120}
                 value={correo}

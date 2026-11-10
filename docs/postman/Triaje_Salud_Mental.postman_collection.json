@@ -1,0 +1,956 @@
+{
+  "info": {
+    "_postman_id": "c1f7b8e0-1234-4567-89ab-triajesalud2026",
+    "name": "Triaje Salud Mental - API Completa (Arquitectura en Capas)",
+    "description": "Colección completa para pruebas End-to-End del sistema de Triaje de Salud Mental.\nCubre los flujos de:\n1. Autenticación y ciclo de vida de sesiones JWT (con rotación de token de renovación).\n2. Gestión del consentimiento informado.\n3. Aplicación de pruebas PHQ-9 y GAD-7, detección de crisis y descarga de PDF.\n4. Autorización de acceso a expedientes clínicos y revocación.\n5. Portal clínico: visualización y descarga de expedientes autorizados.\n6. Ciclo de vida completo de citas clínicas (propuesta, confirmación, posponer, cumplir, cancelar).\n7. Módulo de administración: alta, edición y desactivación de clínicos, auditoría de eventos.\n8. Recursos de ayuda pública para situaciones de emergencia.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "tokenPaciente",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenClinico",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "evaluacionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clinicoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "citaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "correoPaciente",
+      "value": "paciente.prueba@cesde.edu.co",
+      "type": "string"
+    },
+    {
+      "key": "correoClinico",
+      "value": "dra.garcia@cesde.edu.co",
+      "type": "string"
+    },
+    {
+      "key": "correoAdmin",
+      "value": "admin@triaje.salud",
+      "type": "string"
+    },
+    {
+      "key": "contrasenaComun",
+      "value": "ClaveSegura123*",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticacion",
+      "item": [
+        {
+          "name": "1.1 Registro de Paciente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Registro exitoso - Codigo 201', function () {",
+                  "        pm.expect(pm.response.code).to.eql(201);",
+                  "        pm.expect(json).to.have.property('id');",
+                  "        pm.expect(json.rol).to.eql('PACIENTE');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Juan Camilo Pérez\",\n  \"correo\": \"{{correoPaciente}}\",\n  \"contrasena\": \"{{contrasenaComun}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/autenticacion/registro",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "autenticacion", "registro"]
+            }
+          }
+        },
+        {
+          "name": "1.2 Inicio de Sesión - Paciente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('tokenPaciente', json.tokenAcceso);",
+                  "    pm.test('Login exitoso y token guardado', function () {",
+                  "        pm.expect(pm.response.code).to.eql(200);",
+                  "        pm.expect(json.tokenAcceso).to.be.a('string');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correoPaciente}}\",\n  \"contrasena\": \"{{contrasenaComun}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/autenticacion/inicio-sesion",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "autenticacion", "inicio-sesion"]
+            }
+          }
+        },
+        {
+          "name": "1.3 Renovar Token de Acceso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('tokenPaciente', json.tokenAcceso);",
+                  "    pm.test('Token renovado exitosamente', function () {",
+                  "        pm.expect(pm.response.code).to.eql(200);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/autenticacion/renovar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "autenticacion", "renovar"]
+            }
+          }
+        },
+        {
+          "name": "1.4 Inicio de Sesión - Administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('tokenAdmin', json.tokenAcceso);",
+                  "    pm.test('Login admin exitoso', function () {",
+                  "        pm.expect(pm.response.code).to.eql(200);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correoAdmin}}\",\n  \"contrasena\": \"AdminSecreto2026*\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/autenticacion/inicio-sesion",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "autenticacion", "inicio-sesion"]
+            }
+          }
+        },
+        {
+          "name": "1.5 Cerrar Sesión",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/autenticacion/cierre-sesion",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "autenticacion", "cierre-sesion"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Perfil de Usuario",
+      "item": [
+        {
+          "name": "2.1 Obtener Perfil Actual",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/yo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "yo"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Actualizar Perfil",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Juan Camilo Pérez Restrepo\",\n  \"correo\": \"{{correoPaciente}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/yo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "yo"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Consentimiento Informado",
+      "item": [
+        {
+          "name": "3.1 Consultar Consentimiento Vigente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consentimientos/vigente",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consentimientos", "vigente"]
+            }
+          }
+        },
+        {
+          "name": "3.2 Otorgar Consentimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"versionConsentimiento\": \"1.0\",\n  \"versionPolitica\": \"1.0\",\n  \"confirmaMayoriaEdad\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/consentimientos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consentimientos"]
+            }
+          }
+        },
+        {
+          "name": "3.3 Revocar Consentimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/consentimientos/revocar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consentimientos", "revocar"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Triaje y Cribado (PHQ-9 y GAD-7)",
+      "item": [
+        {
+          "name": "4.1 Iniciar Nueva Evaluación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('evaluacionId', json.id);",
+                  "    pm.test('Evaluacion iniciada y ID guardado', function () {",
+                  "        pm.expect(pm.response.code).to.eql(201);",
+                  "        pm.expect(json).to.have.property('id');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones"]
+            }
+          }
+        },
+        {
+          "name": "4.2 Registrar Respuestas Cuestionarios",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instrumento\": \"PHQ9\",\n  \"indicePregunta\": 1,\n  \"valorPuntaje\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones/{{evaluacionId}}/respuestas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones", "{{evaluacionId}}", "respuestas"]
+            }
+          }
+        },
+        {
+          "name": "4.3 Finalizar Evaluación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones/{{evaluacionId}}/finalizar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones", "{{evaluacionId}}", "finalizar"]
+            }
+          }
+        },
+        {
+          "name": "4.4 Listar Evaluaciones del Paciente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones"]
+            }
+          }
+        },
+        {
+          "name": "4.5 Consultar Detalle de Evaluación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones/{{evaluacionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones", "{{evaluacionId}}"]
+            }
+          }
+        },
+        {
+          "name": "4.6 Descargar Reporte PDF del Cribado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones/{{evaluacionId}}/pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones", "{{evaluacionId}}", "pdf"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Administracion de Clinicos y Pacientes",
+      "item": [
+        {
+          "name": "5.1 Crear Nuevo Clínico (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('clinicoId', json.id);",
+                  "    pm.test('Clinico creado exitosamente', function () {",
+                  "        pm.expect(pm.response.code).to.eql(201);",
+                  "        pm.expect(json).to.have.property('id');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombreCompleto\": \"Dra. Marcela García\",\n  \"correo\": \"{{correoClinico}}\",\n  \"contrasenaInicial\": \"{{contrasenaComun}}\",\n  \"especialidad\": \"Psicología Clínica y Terapia Cognitivo-Conductual\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/administracion/clinicos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "administracion", "clinicos"]
+            }
+          }
+        },
+        {
+          "name": "5.2 Listar Todos los Clínicos (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/administracion/clinicos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "administracion", "clinicos"]
+            }
+          }
+        },
+        {
+          "name": "5.3 Desactivar Clínico (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/administracion/clinicos/{{clinicoId}}/desactivar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "administracion", "clinicos", "{{clinicoId}}", "desactivar"]
+            }
+          }
+        },
+        {
+          "name": "5.4 Activar Clínico (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/administracion/clinicos/{{clinicoId}}/activar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "administracion", "clinicos", "{{clinicoId}}", "activar"]
+            }
+          }
+        },
+        {
+          "name": "5.4 Consultar Bitácora de Auditoría (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/administracion/auditoria",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "administracion", "auditoria"]
+            }
+          }
+        },
+        {
+          "name": "5.5 Listar Pacientes Registrados (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/administracion/pacientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "administracion", "pacientes"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Autorizaciones Clínicas (Paciente)",
+      "item": [
+        {
+          "name": "6.1 Listar Clínicos Activos Disponibles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clinicos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clinicos"]
+            }
+          }
+        },
+        {
+          "name": "6.2 Otorgar Autorización al Clínico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clinicoId\": {{clinicoId}},\n  \"confirmaAutorizacion\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones/{{evaluacionId}}/autorizaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones", "{{evaluacionId}}", "autorizaciones"]
+            }
+          }
+        },
+        {
+          "name": "6.3 Listar Autorizaciones de la Evaluación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones/{{evaluacionId}}/autorizaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones", "{{evaluacionId}}", "autorizaciones"]
+            }
+          }
+        },
+        {
+          "name": "6.4 Revocar Acceso al Clínico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/triaje/evaluaciones/{{evaluacionId}}/autorizaciones/{{clinicoId}}/revocar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "triaje", "evaluaciones", "{{evaluacionId}}", "autorizaciones", "{{clinicoId}}", "revocar"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Portal Clínico",
+      "item": [
+        {
+          "name": "7.1 Inicio de Sesión - Clínico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('tokenClinico', json.tokenAcceso);",
+                  "    pm.test('Login clinico exitoso', function () {",
+                  "        pm.expect(pm.response.code).to.eql(200);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"{{correoClinico}}\",\n  \"contrasena\": \"{{contrasenaComun}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/autenticacion/inicio-sesion",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "autenticacion", "inicio-sesion"]
+            }
+          }
+        },
+        {
+          "name": "7.2 Listar Evaluaciones Autorizadas al Clínico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenClinico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clinico/evaluaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clinico", "evaluaciones"]
+            }
+          }
+        },
+        {
+          "name": "7.3 Consultar Detalle Clínico de Evaluación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenClinico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clinico/evaluaciones/{{evaluacionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clinico", "evaluaciones", "{{evaluacionId}}"]
+            }
+          }
+        },
+        {
+          "name": "7.4 Descargar PDF Clínico de Evaluación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenClinico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clinico/evaluaciones/{{evaluacionId}}/pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clinico", "evaluaciones", "{{evaluacionId}}", "pdf"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Gestión de Citas Clínicas",
+      "item": [
+        {
+          "name": "8.1 Proponer Cita (Clínico)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('citaId', json.id);",
+                  "    pm.test('Cita propuesta exitosamente', function () {",
+                  "        pm.expect(pm.response.code).to.eql(201);",
+                  "        pm.expect(json).to.have.property('id');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenClinico}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"evaluacionId\": \"{{evaluacionId}}\",\n  \"fechaHora\": \"2026-11-20T15:00:00Z\",\n  \"modalidad\": \"VIRTUAL\",\n  \"mensaje\": \"Consulta inicial de valoración terapéutica.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clinico/citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clinico", "citas"]
+            }
+          }
+        },
+        {
+          "name": "8.2 Listar Citas del Clínico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenClinico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clinico/citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clinico", "citas"]
+            }
+          }
+        },
+        {
+          "name": "8.3 Listar Citas del Paciente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas"]
+            }
+          }
+        },
+        {
+          "name": "8.4 Confirmar Cita (Paciente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/{{citaId}}/confirmar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "{{citaId}}", "confirmar"]
+            }
+          }
+        },
+        {
+          "name": "8.5 Posponer Cita (Clínico)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenClinico}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevaFechaHora\": \"2026-11-25T16:00:00Z\",\n  \"mensaje\": \"Reprogramación por motivos de agenda médica.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clinico/citas/{{citaId}}/posponer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clinico", "citas", "{{citaId}}", "posponer"]
+            }
+          }
+        },
+        {
+          "name": "8.6 Cancelar Cita (Paciente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/{{citaId}}/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "{{citaId}}", "cancelar"]
+            }
+          }
+        },
+        {
+          "name": "8.7 Marcar Cita como Cumplida (Clínico)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenClinico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/clinico/citas/{{citaId}}/cumplir",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clinico", "citas", "{{citaId}}", "cumplir"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Recursos de Ayuda y Emergencia",
+      "item": [
+        {
+          "name": "9.1 Consultar Líneas de Ayuda en Crisis (Público)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recursos-ayuda",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "recursos-ayuda"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

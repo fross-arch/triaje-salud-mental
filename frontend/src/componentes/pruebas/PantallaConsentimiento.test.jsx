@@ -109,4 +109,14 @@ describe('PantallaConsentimiento', () => {
     expect(mockCerrarSesion).toHaveBeenCalledTimes(1);
     expect(mockNavegacion).toHaveBeenCalledWith('/iniciar-sesion');
   });
+
+  it('redirige a /introduccion si el consentimiento ya se encuentra vigente', async () => {
+    servicioConsentimiento.consultarVigente.mockResolvedValueOnce({ vigente: true });
+    renderizarComponente();
+
+    await vi.waitFor(() => {
+      expect(mockNavegacion).toHaveBeenCalledWith('/introduccion', { replace: true });
+    });
+  });
 });
+

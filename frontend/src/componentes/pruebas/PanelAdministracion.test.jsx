@@ -11,6 +11,8 @@ vi.mock('../../servicios/servicioAdministracion.js', () => ({
     crearClinico: vi.fn(),
     actualizarClinico: vi.fn(),
     eliminarClinico: vi.fn(),
+    activarClinico: vi.fn(),
+    desactivarClinico: vi.fn(),
     cambiarEstadoClinico: vi.fn(),
     listarPacientes: vi.fn(),
     actualizarPaciente: vi.fn()
@@ -394,5 +396,43 @@ describe('PanelAdministracion', () => {
 
     expect(await screen.findByText('El correo electrónico ya se encuentra registrado por otro usuario.')).toBeInTheDocument();
   });
+
+  it('al fallar la eliminación de un clínico con 409 (sugiere desactivar), muestra la acción directa de desactivar profesional', async () => {
+    servicioAdministracion.listarClinicos.mockResolvedValueOnce(clinicosMock);
+    const error409 = new Error('No es posible eliminar el profesional clínico porque cuenta con citas asociadas en su historial. Se recomienda desactivar la cuenta en su lugar.');
+    error409.status = 409;
+    error409.estado = 409;
+    servicioAdministracion.eliminarClinico.mockRejectedValueOnce(error409);
+    servicioAdministracion.desactivarClinico.mockResolvedValueOnce({
+      ...clinicosMock[0],
+      activo: false
+    });
+
+    render(<PanelAdministracion />);
+
+    expect(await screen.findByText('Dr. Alejandro Psicólogo')).toBeInTheDocument();
+
+    const usuario = userEvent.setup();
+    const botonEliminar = screen.getByRole('button', { name: /Eliminar profesional Dr. Alejandro Psicólogo/i });
+    await usuario.click(botonEliminar);
+
+    // Modal de confirmación abierto
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    const botonConfirmar = screen.getByRole('button', { name: /^Eliminar profesional$/i });
+    await usuario.click(botonConfirmar);
+
+    // Esperar mensaje de error
+    expect(await screen.findByText(/No es posible eliminar el profesional clínico/i)).toBeInTheDocument();
+
+    // Debe mostrarse el botón "Desactivar profesional"
+    const botonDesactivar = screen.getByRole('button', { name: /Desactivar profesional/i });
+    expect(botonDesactivar).toBeInTheDocument();
+
+    // Al hacer clic, debe llamar a desactivarClinico
+    await usuario.click(botonDesactivar);
+    expect(servicioAdministracion.desactivarClinico).toHaveBeenCalledWith(1);
+    expect(await screen.findByText(/desactivada exitosamente/i)).toBeInTheDocument();
+  });
 });
+
 
